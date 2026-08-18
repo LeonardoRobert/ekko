@@ -1,0 +1,94 @@
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'core/router.dart';
+import 'core/theme/app_theme.dart';
+import 'providers/auth_provider.dart';
+import 'providers/theme_provider.dart';
+import 'services/notification_service.dart';
+import 'services/supabase_service.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await SupabaseService.initialize();
+  await NotificationService.initialize();
+  await initializeDateFormatting('pt_BR', null);
+
+  runApp(const ProviderScope(child: EkkoApp()));
+}
+
+class EkkoApp extends ConsumerStatefulWidget {
+  const EkkoApp({super.key});
+
+  @override
+  ConsumerState<EkkoApp> createState() => _EkkoAppState();
+}
+
+class _EkkoAppState extends ConsumerState<EkkoApp> {
+  StreamSubscription<AuthState>? _authSub;
+
+  @override
+  void initState() {
+    super.initState();
+    // Quando a pessoa clica no link de recuperacao de senha do e-mail,
+    // o Supabase dispara esse evento -- a gente aproveita pra levar
+    // direto pra tela de definir a nova senha.
+    _authSub = SupabaseService.client.auth.onAuthStateChange.listen((state) {
+      if (state.event == AuthChangeEvent.passwordRecovery) {
+        ref.read(routerProvider).go('/redefinir-senha');
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _authSub?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final router = ref.watch(routerProvider);
+    final preferenciaTema = ref.watch(themeModeProvider);
+
+    // Antes do login (perfil ainda nao carregado), usa o tema Shallom
+    // como padrao -- e o app "guarda-chuva", o Awake e um dos
+    // ministerios dentro dele. Assim que a pessoa entra, se ela for
+    // Awake, o tema se ajusta sozinho pro amarelo/chama.
+    final ehAwake = ref.watch(currentProfileProvider).value?.pertenceAwake ?? false;
+
+    // 3 opcoes (Claro/Escuro/Mais escuro), controladas manualmente pela
+    // pessoa (ver Perfil) -- nao segue o tema do sistema. Como o
+    // ThemeMode nativo do Flutter so tem claro/escuro/sistema, resolve
+    // o ThemeData na mao aqui e forca o MaterialApp a sempre usar
+    // "theme" (nunca "darkTheme" por conta propria).
+    final temaResolvido = switch (preferenciaTema) {
+      PreferenciaTema.claro => AppTheme.light(ehAwake: ehAwake),
+      PreferenciaTema.escuro => AppTheme.dark(ehAwake: ehAwake),
+      PreferenciaTema.maisEscuro => AppTheme.amoled(ehAwake: ehAwake),
+    };
+
+    return MaterialApp.router(
+      title: 'e-kko. church',
+      debugShowCheckedModeBanner: false,
+      theme: temaResolvido,
+      darkTheme: temaResolvido,
+      themeMode: ThemeMode.light,
+      // Sem isso, os componentes prontos do proprio Flutter (calendario
+      // do seletor de data, seletor de hora, etc) aparecem em ingles
+      // por padrao, mesmo com o resto do app em portugues.
+      locale: const Locale('pt', 'BR'),
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [Locale('pt', 'BR')],
+      routerConfig: router,
+    );
+  }
+}

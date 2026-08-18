@@ -1,0 +1,89 @@
+name: ekko_app
+description: e-kko. church - motor generico de app de gestao de igreja (adaptado do app da Shallom).
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.6
+
+  excel: ^4.0.6
+  file_picker: ^10.3.10
+
+  # Guarda a preferencia de tema no proprio aparelho
+  shared_preferences: ^2.3.2
+
+  # Traduz os componentes visuais do proprio Flutter (calendario/seletor
+  # de data e hora, botoes padrao, etc) para portugues
+  flutter_localizations:
+    sdk: flutter
+
+  # Usado pra montar o arquivo de imagem na hora de compartilhar no WhatsApp
+  cross_file: ^0.3.4+2
+
+  # Foto de evento (escolher da galeria) e compartilhamento
+  image_picker: ^1.1.2
+  share_plus: ^10.1.2
+
+  # Busca de endereco por CEP (cadastro e edicao de perfil)
+  http: ^1.2.0
+
+  # Backend / dados
+  supabase_flutter: ^2.5.6
+
+  # QR Code do Pix (financeiro) -- NAO e' do check-in/escala Awake (isso
+  # saiu), e' o QR do BR Code/EMV mostrado na tela de Contribua.
+  qr_flutter: ^4.1.0
+
+  # Gerenciamento de estado
+  flutter_riverpod: ^2.5.1
+
+  # Navegacao
+  go_router: ^14.2.0
+
+  # Push notifications
+  onesignal_flutter: ^5.1.2
+
+  # Utilidades
+  intl: ^0.20.2
+  table_calendar: ^3.1.2
+  uuid: ^4.4.0
+
+  # Tipografia
+  google_fonts: ^6.2.1
+
+  # Player de video embutido (usado no modulo de Treinamentos)
+  webview_flutter: ^4.9.0
+
+  # Abrir links externos (usado no player de treinamento na versao web)
+  url_launcher: ^6.3.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  flutter_launcher_icons: ^0.13.1
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+
+flutter_launcher_icons:
+  # TEMPORARIO: ainda usa o material da Shallom (herdado do awake_app)
+  # ate o painel de tenant existir e cada igreja poder subir o proprio
+  # logo -- ver plano em C:\Users\leona\.claude\plans\vivid-snacking-mist.md.
+  android: true
+  ios: true
+  image_path: "assets/images/shallom_icon_square.png"
+  adaptive_icon_background: "#0C192E"
+  adaptive_icon_foreground: "assets/images/shallom_pomba_adaptativa.png"
+  web:
+    generate: true
+    image_path: "assets/images/shallom_icon_square.png"
+    background_color: "#0C192E"
+    theme_color: "#0C192E"

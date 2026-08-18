@@ -1,0 +1,125 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../models/event_model.dart';
+import '../models/treinamento_model.dart';
+import '../providers/auth_provider.dart';
+import '../screens/auth/login_screen.dart';
+import '../screens/auth/redefinir_senha_screen.dart';
+import '../screens/auth/signup_screen.dart';
+import '../screens/auth/termos_screen.dart';
+import '../screens/calendar/admin_calendario_screen.dart';
+import '../screens/financeiro/admin_financeiro_screen.dart';
+import '../screens/calendar/escala_grade_screen.dart';
+import '../screens/calendar/event_detail_screen.dart';
+import '../screens/calendar/event_form_screen.dart';
+import '../screens/financeiro/financeiro_screen.dart';
+import '../screens/home/home_shell.dart';
+import '../screens/training/treinamento_detail_screen.dart';
+import '../screens/training/treinamento_form_screen.dart';
+import '../screens/training/treinamentos_screen.dart';
+
+/// Ouvinte simples que permite ao GoRouter reagir a mudancas
+/// no estado de autenticacao do Supabase.
+class _AuthChangeNotifier extends ChangeNotifier {
+  _AuthChangeNotifier(Ref ref) {
+    ref.listen(authStateProvider, (_, __) => notifyListeners());
+  }
+}
+
+final routerProvider = Provider<GoRouter>((ref) {
+  final authNotifier = _AuthChangeNotifier(ref);
+
+  return GoRouter(
+    initialLocation: '/',
+    refreshListenable: authNotifier,
+    redirect: (context, state) {
+      final session = ref.read(authStateProvider).value?.session;
+      final isLoggedIn = session != null;
+      final isAuthRoute = state.matchedLocation == '/login' ||
+          state.matchedLocation == '/cadastro' ||
+          state.matchedLocation == '/redefinir-senha';
+      // /termos precisa ficar acessivel mesmo SEM login (a pessoa pode
+      // querer ler os termos durante o proprio cadastro, antes de ter
+      // sessao) -- mas nao faz parte de isAuthRoute pra nao disparar o
+      // redirect de "afasta gente logada dessas rotas" la embaixo (o
+      // link em profile_screen.dart usa /termos com a pessoa ja logada).
+      final isRotaPublica = isAuthRoute || state.matchedLocation == '/termos';
+
+      if (!isLoggedIn && !isRotaPublica) return '/login';
+      if (isLoggedIn && isAuthRoute && state.matchedLocation != '/redefinir-senha') {
+        return '/';
+      }
+      return null;
+    },
+    routes: [
+      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
+      GoRoute(path: '/cadastro', builder: (context, state) => const SignupScreen()),
+      GoRoute(
+        path: '/redefinir-senha',
+        builder: (context, state) => const RedefinirSenhaScreen(),
+      ),
+      GoRoute(path: '/termos', builder: (context, state) => const TermosScreen()),
+      GoRoute(path: '/financeiro', builder: (context, state) => const FinanceiroScreen()),
+      GoRoute(path: '/', builder: (context, state) => const HomeShell()),
+      GoRoute(
+        path: '/admin/calendario',
+        builder: (context, state) => const AdminCalendarioScreen(),
+      ),
+      GoRoute(
+        path: '/admin/financeiro',
+        builder: (context, state) => const AdminFinanceiroScreen(),
+      ),
+      GoRoute(
+        path: '/eventos/novo',
+        builder: (context, state) {
+          final dataParam = state.uri.queryParameters['data'];
+          final extra = state.extra;
+          if (extra is EdicaoOcorrenciaUnica) {
+            return EventFormScreen(
+              eventoParaEditar: extra.evento,
+              ocorrenciaUnica: extra.dataOcorrencia,
+            );
+          }
+          return EventFormScreen(
+            eventoParaEditar: extra as EventModel?,
+            dataInicial: dataParam != null ? DateTime.tryParse(dataParam) : null,
+          );
+        },
+      ),
+      GoRoute(
+        path: '/eventos/:id',
+        builder: (context, state) => EventDetailScreen(
+          eventId: state.pathParameters['id']!,
+          occurrenceDate: state.extra as DateTime?,
+        ),
+      ),
+      GoRoute(
+        path: '/escala-grade/:ministerio',
+        builder: (context, state) {
+          final anoParam = state.uri.queryParameters['ano'];
+          final mesParam = state.uri.queryParameters['mes'];
+          return EscalaGradeScreen(
+            ministerio: state.pathParameters['ministerio']!,
+            anoInicial: anoParam != null ? int.tryParse(anoParam) : null,
+            mesInicial: mesParam != null ? int.tryParse(mesParam) : null,
+          );
+        },
+      ),
+      GoRoute(
+        path: '/treinamentos',
+        builder: (context, state) => const TreinamentosScreen(),
+      ),
+      GoRoute(
+        path: '/treinamentos/novo',
+        builder: (context, state) =>
+            TreinamentoFormScreen(treinamentoParaEditar: state.extra as TreinamentoModel?),
+      ),
+      GoRoute(
+        path: '/treinamentos/detalhe',
+        builder: (context, state) =>
+            TreinamentoDetailScreen(treinamento: state.extra as TreinamentoModel),
+      ),
+    ],
+  );
+});
