@@ -19,7 +19,6 @@ class TreinamentosScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AwakeAppBar(
         title: 'Treinamentos',
-        showQrButton: false,
         leading: IconButton(
           tooltip: 'Voltar',
           icon: const Icon(Icons.arrow_back),

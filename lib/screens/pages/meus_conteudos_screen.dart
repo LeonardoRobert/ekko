@@ -96,7 +96,7 @@ class _MeusConteudosScreenState extends State<MeusConteudosScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const AwakeAppBar(title: 'Meus Conteúdos', showQrButton: false),
+      appBar: const AwakeAppBar(title: 'Meus Conteúdos'),
       body: FutureBuilder<(List<VideoYoutube>, Map<String, String>)>(
         future: _futuro,
         builder: (context, snapshot) {

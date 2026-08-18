@@ -25,4 +25,15 @@ class Env {
     'ONESIGNAL_APP_ID',
     defaultValue: 'SEU_ONESIGNAL_APP_ID', // TODO: preencher
   );
+
+  /// Slug da igreja dona DESSE build especifico (ex: 'shallom').
+  /// Cada igreja cliente ganha o proprio build/app dedicado (App
+  /// Store/Play Store exigem isso -- ver guideline 4.2.6 da Apple),
+  /// mas todos compartilham o mesmo codigo-fonte e o mesmo projeto
+  /// Supabase: e' esse slug que diz pro app QUAL linha da tabela
+  /// `tenants` carregar (cores, logo, modulos ativos) na inicializacao.
+  static const tenantSlug = String.fromEnvironment(
+    'TENANT_SLUG',
+    defaultValue: 'demo', // TODO: preencher por build
+  );
 }

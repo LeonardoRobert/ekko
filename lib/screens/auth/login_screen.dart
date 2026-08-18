@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/erro_amigavel.dart';
 import '../../core/theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/tenant_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -93,14 +94,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Essa tela so eh alcancada depois do tenant ja ter carregado (ver
+    // main.dart) -- o .value aqui e seguro.
+    final tenant = ref.watch(tenantAtualProvider).value!;
+
     // O cartao do login e sempre claro (fundo branco fixo) -- por
     // isso, o texto dentro dele tambem precisa ser sempre do tema
     // claro, mesmo que a pessoa tenha deixado o modo escuro ligado
     // antes de sair (senao o texto fica branco sobre fundo branco).
     return Theme(
-      data: AppTheme.light(ehAwake: false),
+      data: AppTheme.light(corPrimaria: tenant.corPrimaria, corDestaque: tenant.corDestaque),
       child: Scaffold(
-        backgroundColor: AwakeColors.navy,
+        backgroundColor: tenant.corPrimaria,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -111,10 +116,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Image.asset(
-                    'assets/images/shallom_logo_white.png',
-                    height: 48,
-                  ),
+                  if (tenant.logoUrl != null)
+                    Image.network(tenant.logoUrl!, height: 48)
+                  else
+                    Text(
+                      tenant.nome,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: AwakeColors.offWhite,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   const SizedBox(height: 40),
                   Container(
                     padding: const EdgeInsets.all(20),
@@ -151,7 +164,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           alignment: Alignment.centerRight,
                           child: TextButton(
                             onPressed: _loading ? null : _esqueciSenha,
-                            style: TextButton.styleFrom(foregroundColor: AwakeColors.navy),
+                            style: TextButton.styleFrom(foregroundColor: tenant.corPrimaria),
                             child: const Text('Esqueci minha senha'),
                           ),
                         ),

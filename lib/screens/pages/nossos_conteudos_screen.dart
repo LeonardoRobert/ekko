@@ -48,7 +48,7 @@ class _NossosConteudosScreenState extends State<NossosConteudosScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const AwakeAppBar(title: 'Nossos Conteúdos', showQrButton: false),
+      appBar: const AwakeAppBar(title: 'Nossos Conteúdos'),
       body: RefreshIndicator(
         onRefresh: () async {
           setState(() => _futuro = _carregar());

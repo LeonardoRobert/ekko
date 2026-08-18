@@ -60,7 +60,7 @@ class _EnviarMensagemScreenState extends State<EnviarMensagemScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AwakeAppBar(title: widget.titulo, showQrButton: false),
+      appBar: AwakeAppBar(title: widget.titulo),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(

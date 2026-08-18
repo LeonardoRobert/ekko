@@ -82,7 +82,7 @@ class _AdminVisitantesScreenState extends State<AdminVisitantesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const AwakeAppBar(title: 'Visitantes — Primeira Vez', showQrButton: false),
+      appBar: const AwakeAppBar(title: 'Visitantes — Primeira Vez'),
       body: RefreshIndicator(
         onRefresh: _recarregar,
         child: FutureBuilder<List<VisitanteModel>>(

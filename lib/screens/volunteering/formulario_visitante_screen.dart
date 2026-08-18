@@ -150,7 +150,7 @@ class _FormularioVisitanteScreenState extends State<FormularioVisitanteScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const AwakeAppBar(title: 'Registrar visitante', showQrButton: false),
+      appBar: const AwakeAppBar(title: 'Registrar visitante'),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(

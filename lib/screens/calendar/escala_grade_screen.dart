@@ -453,7 +453,6 @@ class _EscalaGradeScreenState extends ConsumerState<EscalaGradeScreen>
       return Scaffold(
         appBar: AwakeAppBar(
           title: 'Escala mensal — ${widget.ministerio.labelMinisterio}',
-          showQrButton: false,
         ),
         body: const Center(
           child: Padding(
@@ -470,7 +469,6 @@ class _EscalaGradeScreenState extends ConsumerState<EscalaGradeScreen>
     return Scaffold(
       appBar: AwakeAppBar(
         title: 'Escala mensal — ${widget.ministerio.labelMinisterio}',
-        showQrButton: false,
         actions: [
           IconButton(
             icon: const Icon(Icons.copy_all_outlined),

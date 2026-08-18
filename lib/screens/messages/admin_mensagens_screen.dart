@@ -33,7 +33,7 @@ class _AdminMensagensScreenState extends State<AdminMensagensScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AwakeAppBar(title: 'Caixa de entrada', showQrButton: false),
+      appBar: AwakeAppBar(title: 'Caixa de entrada'),
       body: Column(
         children: [
           TabBar(

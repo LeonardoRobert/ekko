@@ -414,7 +414,6 @@ class _EscalaServicoScreenState extends State<EscalaServicoScreen> {
     return Scaffold(
       appBar: AwakeAppBar(
         title: titulo,
-        showQrButton: false,
         actions: [
           IconButton(
             icon: const Icon(Icons.copy_all_outlined),

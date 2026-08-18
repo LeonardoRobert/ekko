@@ -25,7 +25,7 @@ class QuemSomosScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const AwakeAppBar(title: 'Quem somos nós', showQrButton: false),
+      appBar: const AwakeAppBar(title: 'Quem somos nós'),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Text(

@@ -194,7 +194,7 @@ class _OutdoorFormScreenState extends ConsumerState<OutdoorFormScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AwakeAppBar(title: _isEdicao ? 'Editar outdoor' : 'Criar outdoor', showQrButton: false),
+      appBar: AwakeAppBar(title: _isEdicao ? 'Editar outdoor' : 'Criar outdoor'),
       body: Form(
         key: _formKey,
         child: ListView(

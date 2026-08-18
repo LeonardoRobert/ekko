@@ -391,7 +391,7 @@ class _FinanceiroScreenState extends ConsumerState<FinanceiroScreen> {
     final formatoMoeda = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
 
     return Scaffold(
-      appBar: const AwakeAppBar(title: 'Contribua', showQrButton: false),
+      appBar: const AwakeAppBar(title: 'Contribua'),
       body: RefreshIndicator(
         onRefresh: () async => ref.invalidate(minhasContribuicoesProvider),
         child: ListView(

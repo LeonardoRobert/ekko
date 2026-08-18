@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/erro_amigavel.dart';
 import '../../core/theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/tenant_provider.dart';
 import '../calendar/calendar_screen.dart';
 import '../financeiro/financeiro_screen.dart';
 import '../home/inicio_screen.dart';
@@ -11,12 +12,19 @@ import '../profile/profile_screen.dart';
 
 /// Estrutura principal do app com navegacao por abas.
 ///
-/// Motor generico (e-kko. church) -- navegacao unica de 5 abas
-/// (Inicio/Calendario/Conteudos/Contribua/Perfil), sem os modulos
-/// exclusivos do Awake (Escala/Metas/QR) que existiam no app original
-/// da Shallom. Cores ainda fixas nesta rodada (ShallomColors) -- virar
-/// config por tenant e' trabalho de uma fase futura, ver o plano em
+/// Motor generico (e-kko. church) -- Inicio e Perfil sempre aparecem;
+/// as abas do meio (Calendario/Conteudos/Contribua) sao montadas a
+/// partir de `tenant.modulosAtivos`, entao cada igreja ve so os modulos
+/// que contratou. Sem os modulos exclusivos do Awake (Escala/Metas/QR)
+/// que existiam no app original da Shallom -- ver o plano em
 /// C:\Users\leona\.claude\plans\vivid-snacking-mist.md.
+typedef _Aba = (String chave, IconData icon, String label, Widget tela);
+
+const _catalogoDeAbas = <_Aba>[
+  ('calendario', Icons.calendar_month, 'Calendário', CalendarScreen()),
+  ('conteudos', Icons.ondemand_video_outlined, 'Conteúdos', NossosConteudosScreen()),
+  ('financeiro', Icons.attach_money, 'Contribua', FinanceiroScreen()),
+];
 class HomeShell extends ConsumerStatefulWidget {
   const HomeShell({super.key});
 
@@ -96,24 +104,28 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       data: (profile) {
         _mostrarTourSeNecessario();
 
-        const screens = [
-          InicioScreen(),
-          CalendarScreen(),
-          NossosConteudosScreen(),
-          FinanceiroScreen(),
-          ProfileScreen(),
+        // Essa tela so eh alcancada depois do tenant ja ter carregado
+        // (ver main.dart) -- o .value aqui e seguro.
+        final modulosAtivos = ref.watch(tenantAtualProvider).value?.modulosAtivos ?? const [];
+        final abasDoMeio = _catalogoDeAbas.where((a) => modulosAtivos.contains(a.$1)).toList();
+
+        final screens = [
+          const InicioScreen(),
+          ...abasDoMeio.map((a) => a.$4),
+          const ProfileScreen(),
         ];
 
-        const itens = [
+        final itens = [
           (Icons.home_outlined, 'Início'),
-          (Icons.calendar_month, 'Calendário'),
-          (Icons.ondemand_video_outlined, 'Conteúdos'),
-          (Icons.attach_money, 'Contribua'),
+          ...abasDoMeio.map((a) => (a.$2, a.$3)),
           (Icons.person, 'Perfil'),
         ];
-        final corFundo = ShallomColors.azul;
-        final corSelecionada = AwakeColors.navy;
-        final corNaoSelecionada = AwakeColors.offWhite;
+        // Cores vem do tema (que ja reflete o tenant atual -- ver
+        // main.dart/tenant_provider.dart), nao mais fixas Awake/Shallom.
+        final corScheme = Theme.of(context).colorScheme;
+        final corFundo = corScheme.secondary;
+        final corSelecionada = corScheme.primary;
+        const corNaoSelecionada = AwakeColors.offWhite;
 
         return Scaffold(
           body: IndexedStack(index: _currentIndex, children: screens),

@@ -8,7 +8,7 @@ class TermosScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      appBar: const AwakeAppBar(title: 'Termos de Uso e Privacidade', showQrButton: false),
+      appBar: const AwakeAppBar(title: 'Termos de Uso e Privacidade'),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(

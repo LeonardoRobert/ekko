@@ -389,7 +389,6 @@ class _EventFormScreenState extends ConsumerState<EventFormScreen> {
         title: _ehOcorrenciaUnica
             ? 'Editar esta data'
             : (_isEdicao ? 'Editar evento' : 'Novo evento'),
-        showQrButton: false,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),

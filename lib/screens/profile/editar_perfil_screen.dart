@@ -246,7 +246,7 @@ class _EditarPerfilScreenState extends ConsumerState<EditarPerfilScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const AwakeAppBar(title: 'Editar perfil', showQrButton: false),
+      appBar: const AwakeAppBar(title: 'Editar perfil'),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(

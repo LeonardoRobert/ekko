@@ -17,7 +17,7 @@ class NossasPaginasScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const AwakeAppBar(title: 'Nossas páginas', showQrButton: false),
+      appBar: const AwakeAppBar(title: 'Nossas páginas'),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

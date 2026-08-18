@@ -28,7 +28,7 @@ class _AdminQuestionariosScreenState extends State<AdminQuestionariosScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const AwakeAppBar(title: 'Questionários de novos servos', showQrButton: false),
+      appBar: const AwakeAppBar(title: 'Questionários de novos servos'),
       body: RefreshIndicator(
         onRefresh: _recarregar,
         child: FutureBuilder<List<QuestionarioNovoServo>>(

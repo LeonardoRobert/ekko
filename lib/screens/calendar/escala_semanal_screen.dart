@@ -23,7 +23,6 @@ class EscalaSemanalScreen extends StatelessWidget {
     return Scaffold(
       appBar: AwakeAppBar(
         title: 'Escala semanal — ${ministerio.labelMinisterio}',
-        showQrButton: false,
       ),
       body: ListView.separated(
         padding: const EdgeInsets.all(16),

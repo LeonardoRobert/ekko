@@ -40,7 +40,7 @@ class OutdoorsAdminScreen extends ConsumerWidget {
     final outdoorsAsync = ref.watch(outdoorsProvider);
 
     return Scaffold(
-      appBar: const AwakeAppBar(title: 'Outdoors', showQrButton: false),
+      appBar: const AwakeAppBar(title: 'Outdoors'),
       floatingActionButton: FloatingActionButton(
         onPressed: () => Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => const OutdoorFormScreen()),

@@ -70,7 +70,7 @@ class EventDetailScreen extends ConsumerWidget {
                 .toList();
 
     return Scaffold(
-      appBar: const AwakeAppBar(title: 'Detalhes do evento', showQrButton: false),
+      appBar: const AwakeAppBar(title: 'Detalhes do evento'),
       body: eventsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, _) => Center(child: Text('Erro: $err')),

@@ -93,7 +93,7 @@ class MeuPerfilScreen extends ConsumerWidget {
     final email = ref.watch(authServiceProvider).currentUserEmail;
 
     return Scaffold(
-      appBar: const AwakeAppBar(title: 'Meu perfil', showQrButton: false),
+      appBar: const AwakeAppBar(title: 'Meu perfil'),
       body: profileAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, _) => Center(child: Text('Erro: $err')),

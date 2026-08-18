@@ -50,7 +50,7 @@ class _QuestionarioNovoServoScreenState extends State<QuestionarioNovoServoScree
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const AwakeAppBar(title: 'Questionário de novo servo', showQrButton: false),
+      appBar: const AwakeAppBar(title: 'Questionário de novo servo'),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(

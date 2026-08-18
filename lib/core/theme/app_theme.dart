@@ -41,35 +41,24 @@ class ShallomColors {
 final _bodyFont = GoogleFonts.plusJakartaSansTextTheme();
 
 class AppTheme {
-  // Guarda os temas ja prontos na memoria depois da primeira vez de
-  // cada um -- um cache por combinacao (claro/escuro x Awake/Shallom),
-  // assim nunca precisa recalcular fontes e cores do zero de novo.
-  static ThemeData? _lightAwake;
-  static ThemeData? _lightShallom;
-  static ThemeData? _darkAwake;
-  static ThemeData? _darkShallom;
-  static ThemeData? _amoledAwake;
-  static ThemeData? _amoledShallom;
-
-  /// `ehAwake` decide a cor de destaque do app inteiro (botoes, FAB,
-  /// barra de navegacao): amarelo Awake ou azul Shallom. Nas telas de
-  /// login/cadastro, antes de sabermos o ministerio da pessoa, usa o
-  /// padrao (Awake).
-  static ThemeData light({bool ehAwake = true}) {
-    if (ehAwake) return _lightAwake ??= _buildLight(true);
-    return _lightShallom ??= _buildLight(false);
+  /// Cada build do app pertence a UMA igreja (tenant) so -- entao
+  /// `corPrimaria` (chrome: barra superior/inferior) e `corDestaque`
+  /// (botoes, FAB, item selecionado) vem da linha `tenants` carregada
+  /// em `tenant_provider.dart`, nao de um branch fixo Awake/Shallom
+  /// como antes. Sem cache aqui -- construir o ThemeData e barato, e
+  /// as cores agora sao arbitrarias por tenant (nao so 2 variantes).
+  static ThemeData light({required Color corPrimaria, required Color corDestaque}) {
+    return _buildLight(corPrimaria, corDestaque);
   }
 
-  static ThemeData dark({bool ehAwake = true}) {
-    if (ehAwake) return _darkAwake ??= _buildDark(true);
-    return _darkShallom ??= _buildDark(false);
+  static ThemeData dark({required Color corPrimaria, required Color corDestaque}) {
+    return _buildDark(corPrimaria, corDestaque);
   }
 
   /// Variante "mais escura" -- mesmo tema escuro, so com fundo preto de
   /// verdade (bom pra economizar bateria em tela AMOLED).
-  static ThemeData amoled({bool ehAwake = true}) {
-    if (ehAwake) return _amoledAwake ??= _buildDark(true, amoled: true);
-    return _amoledShallom ??= _buildDark(false, amoled: true);
+  static ThemeData amoled({required Color corPrimaria, required Color corDestaque}) {
+    return _buildDark(corPrimaria, corDestaque, amoled: true);
   }
 
   static TextTheme _buildTextTheme(Color textColor) {
@@ -93,16 +82,14 @@ class AppTheme {
     );
   }
 
-  static ThemeData _buildLight(bool ehAwake) {
-    final corDestaque = ehAwake ? AwakeColors.yellow : ShallomColors.azul;
-
+  static ThemeData _buildLight(Color corPrimaria, Color corDestaque) {
     final colorScheme = const ColorScheme.light().copyWith(
-      primary: AwakeColors.navy,
+      primary: corPrimaria,
       onPrimary: AwakeColors.offWhite,
       secondary: corDestaque,
-      onSecondary: AwakeColors.navy,
+      onSecondary: corPrimaria,
       surface: AwakeColors.offWhite,
-      onSurface: AwakeColors.navy,
+      onSurface: corPrimaria,
       surfaceContainerHighest: AwakeColors.lightBlueGrey,
       error: const Color(0xFFB3261E),
     );
@@ -112,9 +99,9 @@ class AppTheme {
       brightness: Brightness.light,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: AwakeColors.offWhite,
-      textTheme: _buildTextTheme(AwakeColors.navy),
+      textTheme: _buildTextTheme(corPrimaria),
       appBarTheme: AppBarTheme(
-        backgroundColor: AwakeColors.navy,
+        backgroundColor: corPrimaria,
         foregroundColor: AwakeColors.offWhite,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
@@ -127,7 +114,7 @@ class AppTheme {
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           backgroundColor: corDestaque,
-          foregroundColor: AwakeColors.navy,
+          foregroundColor: corPrimaria,
           textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
           padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
           minimumSize: const Size(0, 40),
@@ -149,7 +136,7 @@ class AppTheme {
       ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         backgroundColor: corDestaque,
-        foregroundColor: AwakeColors.navy,
+        foregroundColor: corPrimaria,
       ),
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith((states) {
@@ -162,13 +149,13 @@ class AppTheme {
         }),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: AwakeColors.navy,
+        backgroundColor: corPrimaria,
         indicatorColor: corDestaque,
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return TextStyle(
-            color: selected ? AwakeColors.navy : AwakeColors.offWhite,
+            color: selected ? corPrimaria : AwakeColors.offWhite,
             fontSize: 11,
             fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
           );
@@ -176,7 +163,7 @@ class AppTheme {
         iconTheme: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return IconThemeData(
-            color: selected ? AwakeColors.navy : AwakeColors.offWhite,
+            color: selected ? corPrimaria : AwakeColors.offWhite,
           );
         }),
       ),
@@ -189,7 +176,7 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AwakeColors.navy, width: 2),
+          borderSide: BorderSide(color: corPrimaria, width: 2),
         ),
       ),
       cardTheme: CardThemeData(
@@ -217,8 +204,7 @@ class AppTheme {
 
   /// `amoled` troca o navy pelo preto de verdade (tema "mais escuro") --
   /// mesma estrutura do tema escuro normal, so os tons de fundo mudam.
-  static ThemeData _buildDark(bool ehAwake, {bool amoled = false}) {
-    final corDestaque = ehAwake ? AwakeColors.yellow : ShallomColors.azul;
+  static ThemeData _buildDark(Color corPrimaria, Color corDestaque, {bool amoled = false}) {
     final corSurface = amoled ? AwakeColors.amoledSurface : AwakeColors.darkSurface;
     final corBackground = amoled ? AwakeColors.amoledBackground : AwakeColors.darkBackground;
     final corBorda = amoled ? const Color(0xFF262626) : const Color(0xFF3A4A6B);
@@ -226,10 +212,10 @@ class AppTheme {
     final corSurfaceContainer = amoled ? const Color(0xFF1A1A1A) : const Color(0xFF223252);
 
     final colorScheme = ColorScheme.dark(
-      primary: AwakeColors.yellow,
-      onPrimary: AwakeColors.navy,
+      primary: corDestaque,
+      onPrimary: corPrimaria,
       secondary: corDestaque,
-      onSecondary: AwakeColors.navy,
+      onSecondary: corPrimaria,
       surface: corSurface,
       onSurface: AwakeColors.offWhite,
       surfaceContainerHighest: corSurfaceContainer,
@@ -256,7 +242,7 @@ class AppTheme {
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           backgroundColor: corDestaque,
-          foregroundColor: AwakeColors.navy,
+          foregroundColor: corPrimaria,
           textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
           padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
           minimumSize: const Size(0, 40),
@@ -280,7 +266,7 @@ class AppTheme {
       ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         backgroundColor: corDestaque,
-        foregroundColor: AwakeColors.navy,
+        foregroundColor: corPrimaria,
       ),
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith((states) {
@@ -299,7 +285,7 @@ class AppTheme {
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return TextStyle(
-            color: selected ? AwakeColors.navy : AwakeColors.offWhite,
+            color: selected ? corPrimaria : AwakeColors.offWhite,
             fontSize: 11,
             fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
           );
@@ -307,7 +293,7 @@ class AppTheme {
         iconTheme: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return IconThemeData(
-            color: selected ? AwakeColors.navy : AwakeColors.offWhite,
+            color: selected ? corPrimaria : AwakeColors.offWhite,
           );
         }),
       ),

@@ -174,7 +174,6 @@ class _DashboardMinisterioScreenState extends State<DashboardMinisterioScreen> {
     return Scaffold(
       appBar: AwakeAppBar(
         title: 'Dashboard — ${widget.ministerio.labelMinisterio}',
-        showQrButton: false,
       ),
       body: _carregando
           ? const Center(child: CircularProgressIndicator())
