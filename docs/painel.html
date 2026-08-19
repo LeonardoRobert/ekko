@@ -258,6 +258,9 @@
         <label for="editar-ministerio-pv">Ministério que registra Primeira Vez</label>
         <input type="text" id="editar-ministerio-pv" placeholder="ex: recepcao (em branco = só admin registra)">
 
+        <label for="editar-codigo-lider">Código de líder</label>
+        <input type="text" id="editar-codigo-lider" placeholder="código único que a liderança compartilha (em branco = ninguém vira líder por código)">
+
         <div class="toggle-ativo">
           <input type="checkbox" id="editar-ativo">
           <label for="editar-ativo">Igreja ativa</label>
@@ -398,7 +401,7 @@
 
   // --- edicao -----------------------------------------------------------
 
-  function abrirModalEdicao(id) {
+  async function abrirModalEdicao(id) {
     const t = tenantsCache.find(x => x.id === id);
     if (!t) return;
 
@@ -410,6 +413,7 @@
     document.getElementById('editar-cor-destaque-hex').value = t.cor_destaque;
     document.getElementById('editar-logo').value = t.logo_url || '';
     document.getElementById('editar-ministerio-pv').value = t.ministerio_primeira_vez || '';
+    document.getElementById('editar-codigo-lider').value = '';
     document.getElementById('editar-ativo').checked = !!t.ativo;
     document.querySelectorAll('.editar-modulo').forEach(chk => {
       chk.checked = (t.modulos_ativos || []).includes(chk.value);
@@ -417,6 +421,15 @@
     document.getElementById('erro-editar').textContent = '';
 
     fundoModal.style.display = 'flex';
+
+    // tenant_segredos e' tabela separada (nao publica) -- busca depois
+    // de abrir o modal, sem travar a UI esperando essa segunda consulta.
+    const { data: segredo } = await supa
+      .from('tenant_segredos')
+      .select('codigo_lider')
+      .eq('tenant_id', t.id)
+      .maybeSingle();
+    document.getElementById('editar-codigo-lider').value = segredo?.codigo_lider || '';
   }
 
   function fecharModalEdicao() {
@@ -460,6 +473,8 @@
     botao.disabled = true;
     botao.textContent = 'Salvando...';
 
+    const tenantId = document.getElementById('editar-id').value;
+
     const { error } = await supa.from('tenants').update({
       nome: document.getElementById('editar-nome').value.trim(),
       cor_primaria: corPrimaria,
@@ -468,12 +483,17 @@
       modulos_ativos: modulosAtivos,
       ministerio_primeira_vez: document.getElementById('editar-ministerio-pv').value.trim() || null,
       ativo: document.getElementById('editar-ativo').checked,
-    }).eq('id', document.getElementById('editar-id').value);
+    }).eq('id', tenantId);
+
+    const { error: erroSegredo } = await supa.from('tenant_segredos').upsert({
+      tenant_id: tenantId,
+      codigo_lider: document.getElementById('editar-codigo-lider').value.trim() || null,
+    }, { onConflict: 'tenant_id' });
 
     botao.disabled = false;
     botao.textContent = 'Salvar';
 
-    if (error) {
+    if (error || erroSegredo) {
       erroEl.textContent = 'Não foi possível salvar. Tenta de novo em instantes.';
       return;
     }
