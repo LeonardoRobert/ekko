@@ -113,17 +113,22 @@ create table public.profile_ministerios (
 -- Cria a linha de profiles automaticamente quando alguem se cadastra.
 -- O tenant_id vem do metadata passado em auth.signUp(data: {...}) --
 -- ver lib/services/auth_service.dart e lib/screens/auth/signup_screen.dart.
--- Se o metadata nao tiver tenant_id valido, o insert falha alto (nao
--- cria perfil sem igreja associada).
+-- Se o metadata NAO tiver tenant_id, nao cria profile nenhum (em vez de
+-- falhar) -- e' o caso de uma conta criada direto no Dashboard sem
+-- passar pelo cadastro do app, ex: o admin da e-kko (ver
+-- 11_admin_ekko.sql), que nao pertence a tenant nenhum.
 create or replace function public.handle_new_user() returns trigger
 language plpgsql security definer set search_path = public as $$
+declare
+  v_tenant_id uuid;
 begin
+  v_tenant_id := (new.raw_user_meta_data->>'tenant_id')::uuid;
+  if v_tenant_id is null then
+    return new;
+  end if;
+
   insert into public.profiles (id, tenant_id, nome)
-  values (
-    new.id,
-    (new.raw_user_meta_data->>'tenant_id')::uuid,
-    coalesce(new.raw_user_meta_data->>'nome', '')
-  );
+  values (new.id, v_tenant_id, coalesce(new.raw_user_meta_data->>'nome', ''));
   return new;
 end;
 $$;
