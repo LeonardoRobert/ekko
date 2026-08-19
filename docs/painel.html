@@ -261,6 +261,12 @@
         <label for="editar-codigo-lider">Código de líder</label>
         <input type="text" id="editar-codigo-lider" placeholder="código único que a liderança compartilha (em branco = ninguém vira líder por código)">
 
+        <label for="editar-onesignal-app-id">OneSignal — App ID</label>
+        <input type="text" id="editar-onesignal-app-id" placeholder="mesmo valor do --dart-define ONESIGNAL_APP_ID do build">
+
+        <label for="editar-onesignal-rest-key">OneSignal — REST API Key</label>
+        <input type="text" id="editar-onesignal-rest-key" placeholder="secreta -- em branco = igreja sem push configurado ainda">
+
         <div class="toggle-ativo">
           <input type="checkbox" id="editar-ativo">
           <label for="editar-ativo">Igreja ativa</label>
@@ -426,10 +432,12 @@
     // de abrir o modal, sem travar a UI esperando essa segunda consulta.
     const { data: segredo } = await supa
       .from('tenant_segredos')
-      .select('codigo_lider')
+      .select('codigo_lider, onesignal_app_id, onesignal_rest_api_key')
       .eq('tenant_id', t.id)
       .maybeSingle();
     document.getElementById('editar-codigo-lider').value = segredo?.codigo_lider || '';
+    document.getElementById('editar-onesignal-app-id').value = segredo?.onesignal_app_id || '';
+    document.getElementById('editar-onesignal-rest-key').value = segredo?.onesignal_rest_api_key || '';
   }
 
   function fecharModalEdicao() {
@@ -488,6 +496,8 @@
     const { error: erroSegredo } = await supa.from('tenant_segredos').upsert({
       tenant_id: tenantId,
       codigo_lider: document.getElementById('editar-codigo-lider').value.trim() || null,
+      onesignal_app_id: document.getElementById('editar-onesignal-app-id').value.trim() || null,
+      onesignal_rest_api_key: document.getElementById('editar-onesignal-rest-key').value.trim() || null,
     }, { onConflict: 'tenant_id' });
 
     botao.disabled = false;

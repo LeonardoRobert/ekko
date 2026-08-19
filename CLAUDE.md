@@ -144,7 +144,7 @@ ministerio_primeira_vez = '...'`).
 3. **Schema multi-tenant completo, validado de ponta a ponta.** Existe
    um projeto Supabase real (não é mais placeholder) com
    `supabase/sql/schema/` (00→10, ou `completo.sql` pra rodar tudo de
-   uma vez) aplicado: `tenant_id` + RLS em toda tabela de domínio
+   uma vez, na época) aplicado: `tenant_id` + RLS em toda tabela de domínio
    (preenchido sozinho via trigger `definir_tenant_id()`, services Dart
    não precisam mandar `tenant_id`). Cadastro completo testado no app
    rodando (`flutter run -d chrome`) contra esse projeto — perfil e
@@ -162,46 +162,89 @@ ministerio_primeira_vez = '...'`).
      escopo=quem está no `profile_ministerios` daquele nome. As regras
      antigas por idade/gênero/estado civil da Shallom não foram
      portadas (colunas ficam no schema pra compatibilidade, sem uso).
-   - **Acesso anônimo (site público) já preparado** via header
-     `x-tenant-slug` (`tenant_id_anonimo()`), fail-closed sem consumidor
-     ainda (painel/site público é o próximo passo, ver abaixo).
+   - **Acesso anônimo (site público de igreja)** já preparado via
+     header `x-tenant-slug` (`tenant_id_anonimo()`), fail-closed —
+     ainda sem consumidor (isso é o *site* público de cada igreja, uma
+     página diferente do painel de controle abaixo).
    - Ver `C:\Users\leona\.claude\plans\twinkling-questing-barto.md` pro
      plano completo dessa rodada.
+4. **Painel de controle v1 + `solicitar_papel_lider` + notificação de
+   evento novo.** Ver seções próprias abaixo (Painel de controle,
+   `solicitar_papel_lider`, Notificações push) — schema agora vai até
+   `13_notificacoes.sql`.
 
-### O que NÃO existe ainda (bloqueios reais, não esquecimento)
+## Painel de controle (identidade e-kko)
 
-- **`solicitar_papel_lider(codigo, ministerio)`** — RPC chamada por
-  `auth_service.dart`, mas o corpo dela nunca foi encontrado em nenhum
-  arquivo de referência copiado da Shallom (só existia no `schema.sql`
-  original dela, que não foi trazido pra cá). Vai dar erro de função
-  inexistente se alguém tentar "virar líder por código" hoje.
-- **Notificações push** (triggers, Edge Function `send-notification`,
-  OneSignal) — não foram portadas, subsistema separado pra quando o Leo
-  pedir.
-- **Automação bancária (PagBank)** — continua pausada de propósito (ver
-  seção de credenciais acima), não faz parte do schema novo.
-- Painel de controle (com a identidade e-kko) — não existe, nem
-  esboço. Vai ser HTML/JS simples tipo o `gestao.html` do `awake_app`
-  (mesmo padrão: sem build, hospedagem grátis), Fase 0 sem wizard. É
-  esse painel que vai, no futuro, editar `tenants.ministerio_primeira_vez`
-  e mandar o header `x-tenant-slug` pro acesso anônimo funcionar.
-- Ícone/assets do app ainda são literalmente os arquivos da Shallom
-  (`shallom_icon_square.png` etc, ver comentário no `pubspec.yaml`) —
-  placeholder até existir um jeito de cada tenant subir o próprio logo.
-- `profiles.qr_code_id` continua no schema (só pra não quebrar
-  `ProfileModel.fromMap`, que ainda lê esse campo como obrigatório) —
-  resíduo do check-in por QR Code removido, sem uso real em tela nenhuma
-  nova. Se um dia limpar, precisa tirar dos dois lados junto (coluna +
-  campo Dart).
+`docs/painel.html` — HTML/JS puro, sem build, publicado via GitHub
+Pages (`docs/` na branch `master` — este repo não tem branch `main`).
+Login via Supabase Auth, gate de acesso por `is_admin_ekko()` (lista
+fixa de e-mail no SQL, Fase 0 — ver `supabase/sql/schema/11_admin_ekko.sql`).
+Lista as igrejas e edita cores/logo/módulos ativos/
+`ministerio_primeira_vez`/código de líder/credenciais OneSignal de cada
+uma. **Cadastro de igreja nova continua manual via SQL** (Fase 0,
+decisão já tomada) — o painel edita, não cria.
+
+### Segredos por tenant
+
+`tenant_segredos` (`supabase/sql/schema/12_tenant_segredos.sql`) —
+tabela **sem nenhuma policy de leitura pra anon/authenticated**, só
+`is_admin_ekko()` (via painel) ou funções `security definer` mexem
+nela. Guarda `codigo_lider` (um código único por igreja, que a
+liderança compartilha — ver campo em `signup_screen.dart`) e as
+credenciais OneSignal (`onesignal_app_id`/`onesignal_rest_api_key`) de
+cada tenant. Nunca colocar segredo na tabela `tenants` — ela é pública
+(`select using (true)`, pra tela de login ler cor/logo sem estar
+autenticado).
+
+## `solicitar_papel_lider` — implementado
+
+`supabase/sql/schema/12_tenant_segredos.sql` — confere o código contra
+`tenant_segredos.codigo_lider` do próprio tenant do usuário e promove a
+`lider` no `profile_ministerios`. Mesma assinatura que
+`auth_service.dart` já chamava (a RPC só estava sem corpo desde o
+scaffold inicial).
+
+## Notificações push — parcial
+
+`supabase/sql/schema/13_notificacoes.sql` +
+`supabase/functions/send-notification/index.ts`. **Implementado**:
+notificação de evento novo (`trg_notificar_novo_evento`), audiência
+calculada com a mesma regra genérica de visibilidade da RLS de eventos.
+**NÃO implementado ainda**: lembretes agendados (24h/3h antes de
+evento/escala via `pg_cron`) — decisão deliberada de não empilhar mais
+infra em cima de algo que ainda não foi visto funcionando de verdade
+nesta máquina (sem CLI do Supabase pra dar deploy, sem OneSignal
+configurado, sem teste real de envio).
+
+**Bloqueios manuais** (o Leo precisa fazer, não dá por código):
+1. Publicar a Edge Function (Dashboard → Edge Functions → colar
+   `index.ts`) — não tem Supabase CLI nesta máquina.
+2. Trocar o segredo hardcoded em `notificacao_segredo()` (SQL) por um
+   valor de verdade, e configurar o mesmo valor como secret
+   `NOTIFICACAO_SEGREDO` da Edge Function.
+3. Criar um app OneSignal por igreja e preencher as credenciais pelo
+   painel.
+4. Confirmar que a extensão `pg_net` habilitou certo (o `create
+   extension` pode falhar por permissão dependendo do projeto).
+
+## Automação bancária (PagBank) — continua pausada
+
+Ver seção de credenciais no topo deste arquivo — **não reative sem
+pedido explícito**, mesmo que outro pedido pareça abranger "tudo".
 
 ## Próximos passos
 
-1. **Painel de controle (identidade e-kko)** — próximo bloco de
-   trabalho real. HTML/JS simples (sem build), cadastro manual de
-   tenant (Fase 0, sem wizard).
-2. Quando fizer sentido: desenhar `solicitar_papel_lider` do zero,
-   portar notificações push, e dar uma UI pro admin configurar
-   `tenants.ministerio_primeira_vez` (hoje só via SQL direto).
+1. Bloqueios manuais de notificações push (lista acima).
+2. Lembretes agendados (pg_cron), só depois de validar que a
+   notificação de evento novo está funcionando de ponta a ponta.
+3. Ícone/assets do app ainda são os da Shallom
+   (`shallom_icon_square.png` etc, ver comentário no `pubspec.yaml`) —
+   placeholder até existir um jeito de cada tenant subir o próprio
+   logo.
+4. `profiles.qr_code_id` — resíduo do check-in por QR Code removido,
+   mantido só pra não quebrar `ProfileModel.fromMap` (lê esse campo
+   como obrigatório). Limpar coluna + campo Dart juntos, se um dia
+   fizer sentido.
 
 ## Convenções de código (herdadas do `awake_app`, mantidas aqui)
 
