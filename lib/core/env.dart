@@ -13,12 +13,13 @@
 class Env {
   static const supabaseUrl = String.fromEnvironment(
     'SUPABASE_URL',
-    defaultValue: 'https://SEU-PROJETO.supabase.co', // TODO: preencher
+    defaultValue: 'https://yeimskdsftqkbvpafaxe.supabase.co',
   );
 
   static const supabaseAnonKey = String.fromEnvironment(
     'SUPABASE_ANON_KEY',
-    defaultValue: 'SUA_ANON_KEY_AQUI', // TODO: preencher
+    defaultValue:
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InllaW1za2RzZnRxa2J2cGFmYXhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxNTc0OTAsImV4cCI6MjEwMjczMzQ5MH0.BN2-bWwR6AXswVZkln9Sa0vKmm1FVftwPiECCN79krc',
   );
 
   static const oneSignalAppId = String.fromEnvironment(

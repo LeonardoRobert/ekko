@@ -24,11 +24,14 @@ class AuthService {
     String? endereco,
     String? tempoParticipacao,
     required List<String> ministerios,
+    required String tenantId,
   }) async {
     final response = await _client.auth.signUp(
       email: email,
       password: senha,
-      data: {'nome': nome},
+      // A trigger handle_new_user (ver supabase/sql/schema/01_profiles.sql)
+      // le' tenant_id daqui pra saber de qual igreja e' o novo usuario.
+      data: {'nome': nome, 'tenant_id': tenantId},
     );
 
     // A trigger handle_new_user (ver supabase/schema.sql) cria a linha em

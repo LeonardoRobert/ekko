@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/erro_amigavel.dart';
 import '../../models/profile_model.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/tenant_provider.dart';
 import '../../services/cep_service.dart';
 import '../../services/filho_service.dart';
 
@@ -402,6 +403,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
         endereco: _enderecoCompleto,
         tempoParticipacao: resumoParticipacao,
         ministerios: [..._ministeriosSelecionados, ..._areasServico],
+        tenantId: ref.read(tenantAtualProvider).value!.id,
       );
 
       // Cadastra os filhos informados no Passo 0 (usa a sessao que
