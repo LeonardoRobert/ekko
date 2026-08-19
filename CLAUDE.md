@@ -102,10 +102,8 @@ ministério Awake que **não faz parte do motor genérico**:
   classe/arquivo)
 - Metas mensais (gamificação/troféus)
 
-Se em algum ponto aparecer código ou SQL de referência (a pasta
-`supabase/sql/` tem uma cópia BRUTA e não filtrada do histórico de
-migrations da Shallom, ver `supabase/LEIA-ME.md`) mencionando essas
-três coisas, **não porte pra cá**.
+Se for consultar o `awake_app` (repo separado) como referência de algo
+que falta aqui, mencionando essas três coisas, **não porte pra cá**.
 
 ## O que ficou (motor genérico, reaproveitado)
 
@@ -117,78 +115,93 @@ visitantes/Primeira Vez, questionário de novo servo), Nossos Conteúdos
 (vídeos + materiais anexados), Filhos (cadastro de crianças dos
 membros), Treinamentos.
 
-### Formulário de Primeira Vez — generalização pendente
+### Formulário de Primeira Vez — generalizado
 
-Hoje (herdado do `awake_app`) o RPC `esta_na_escala_primeira_vez()`
-provavelmente ainda está escrito assumindo o sistema antigo Escala
-Awake (que foi removido daqui). **Decisão já tomada, ainda não
-implementada em SQL**: em vez de um `area_id` fixo, o formulário de
-"Registrar visitante" deve ficar habilitável em **qualquer ministério
-de Escala de Serviço genérica** (ex: Recepção), configurável por
-tenant. Isso só pode ser implementado/testado depois que existir um
-projeto Supabase real (ver "Próximos passos").
+O antigo `esta_na_escala_primeira_vez()` (que dependia do sistema Escala
+Awake removido) foi substituído por `pode_registrar_primeira_vez()`
+(`supabase/sql/schema/06_cuidado_pastoral.sql`): configurável por
+tenant via `tenants.ministerio_primeira_vez` (nullable) — a pessoa
+escalada **hoje** naquele ministério de Escala de Serviço genérica pode
+registrar visitante. Enquanto um tenant não configurar essa coluna, só
+admin registra. Nenhuma tela/admin ainda mexe nesse campo — hoje só dá
+pra configurar via SQL direto (`update tenants set
+ministerio_primeira_vez = '...'`).
 
 ## Estado atual (2026-08-19)
 
-2 commits até agora, `flutter analyze` limpo (zero erros) nos dois:
+`flutter analyze` limpo (zero erros) em todos os commits até agora:
 
 1. **Scaffold inicial** — copiado do `awake_app`, removendo o sistema
    Escala Awake/check-in/metas (models, services, providers, telas,
    rotas correspondentes).
-2. **Tenant + tema dinâmico** — tabela `tenants` criada
-   (`supabase/sql/00_tenants.sql`, arquivo NOVO e curado, não faz parte
-   da referência bruta). `TenantModel`/`TenantService`/
-   `tenantAtualProvider` carregam a igreja do build (via
-   `Env.tenantSlug`) ANTES de montar o app de verdade — `main.dart` tem
-   estados de loading/erro próprios pra isso. `AppTheme` trocou
-   `ehAwake: bool` por `corPrimaria/corDestaque: Color` vindos do
-   tenant. `home_shell.dart`: as abas do meio (Calendário/Conteúdos/
-   Contribua) são montadas a partir de `tenant.modulosAtivos`.
+2. **Tenant + tema dinâmico** — tabela `tenants` criada.
+   `TenantModel`/`TenantService`/`tenantAtualProvider` carregam a
+   igreja do build (via `Env.tenantSlug`) ANTES de montar o app de
+   verdade — `main.dart` tem estados de loading/erro próprios pra isso.
+   `AppTheme` trocou `ehAwake: bool` por `corPrimaria/corDestaque: Color`
+   vindos do tenant. `home_shell.dart`: as abas do meio (Calendário/
+   Conteúdos/Contribua) são montadas a partir de `tenant.modulosAtivos`.
+3. **Schema multi-tenant completo, validado de ponta a ponta.** Existe
+   um projeto Supabase real (não é mais placeholder) com
+   `supabase/sql/schema/` (00→10, ou `completo.sql` pra rodar tudo de
+   uma vez) aplicado: `tenant_id` + RLS em toda tabela de domínio
+   (preenchido sozinho via trigger `definir_tenant_id()`, services Dart
+   não precisam mandar `tenant_id`). Cadastro completo testado no app
+   rodando (`flutter run -d chrome`) contra esse projeto — perfil e
+   vínculo de ministério gravados com `tenant_id` correto. Decisões de
+   genericidade tomadas nessa rodada (não re-discutir):
+   - **2 papéis** (`membro`/`admin`), sem `admin_financeiro` separado.
+   - **Sem enum fixo** em `ministerio`/`escopo`/`tipo` de evento — cada
+     igreja configura os próprios (a Shallom trava em valores fixos
+     tipo `ebd`/`awake`/`coral`, isso é convenção dela, não do motor).
+   - **Sem `categoria` (Genesis/Next/One) nem `grupo_casais` calculados
+     automaticamente** — eram lógica específica da Shallom/Awake;
+     viraram campos de texto livre sem trigger.
+   - **Visibilidade de eventos/outdoors por escopo simplificada**:
+     `igreja`=todo mundo do tenant, `lideranca`=qualquer líder, outro
+     escopo=quem está no `profile_ministerios` daquele nome. As regras
+     antigas por idade/gênero/estado civil da Shallom não foram
+     portadas (colunas ficam no schema pra compatibilidade, sem uso).
+   - **Acesso anônimo (site público) já preparado** via header
+     `x-tenant-slug` (`tenant_id_anonimo()`), fail-closed sem consumidor
+     ainda (painel/site público é o próximo passo, ver abaixo).
+   - Ver `C:\Users\leona\.claude\plans\twinkling-questing-barto.md` pro
+     plano completo dessa rodada.
 
 ### O que NÃO existe ainda (bloqueios reais, não esquecimento)
 
-- **Nenhum projeto Supabase da e-kko existe de verdade ainda.**
-  `lib/core/env.dart` está com valores placeholder
-  (`SEU-PROJETO.supabase.co` etc). Nada foi testado rodando de ponta a
-  ponta — só `flutter analyze` (checagem estática) passou.
-- `tenant_id` só existe na própria tabela `tenants`. Nenhuma outra
-  tabela (eventos, contribuições, escalas_servico, etc.) tem
-  `tenant_id` nem RLS filtrando por ele — hoje, se rodasse contra um
-  banco de verdade com mais de um tenant, os dados vazariam entre
-  igrejas. **Isso é o próximo bloco de trabalho real.**
-- `supabase/sql/` (pasta `sql/`, não o `00_tenants.sql`) é só uma
-  cópia bruta do histórico de migrations da Shallom — não é um schema
-  limpo, tem coisa do sistema Escala Awake/checkin/metas misturada.
-  Precisa de curadoria manual antes de rodar em qualquer lugar (ver
-  `supabase/LEIA-ME.md`).
+- **`solicitar_papel_lider(codigo, ministerio)`** — RPC chamada por
+  `auth_service.dart`, mas o corpo dela nunca foi encontrado em nenhum
+  arquivo de referência copiado da Shallom (só existia no `schema.sql`
+  original dela, que não foi trazido pra cá). Vai dar erro de função
+  inexistente se alguém tentar "virar líder por código" hoje.
+- **Notificações push** (triggers, Edge Function `send-notification`,
+  OneSignal) — não foram portadas, subsistema separado pra quando o Leo
+  pedir.
+- **Automação bancária (PagBank)** — continua pausada de propósito (ver
+  seção de credenciais acima), não faz parte do schema novo.
 - Painel de controle (com a identidade e-kko) — não existe, nem
   esboço. Vai ser HTML/JS simples tipo o `gestao.html` do `awake_app`
-  (mesmo padrão: sem build, hospedagem grátis), Fase 0 sem wizard.
+  (mesmo padrão: sem build, hospedagem grátis), Fase 0 sem wizard. É
+  esse painel que vai, no futuro, editar `tenants.ministerio_primeira_vez`
+  e mandar o header `x-tenant-slug` pro acesso anônimo funcionar.
 - Ícone/assets do app ainda são literalmente os arquivos da Shallom
   (`shallom_icon_square.png` etc, ver comentário no `pubspec.yaml`) —
   placeholder até existir um jeito de cada tenant subir o próprio logo.
+- `profiles.qr_code_id` continua no schema (só pra não quebrar
+  `ProfileModel.fromMap`, que ainda lê esse campo como obrigatório) —
+  resíduo do check-in por QR Code removido, sem uso real em tela nenhuma
+  nova. Se um dia limpar, precisa tirar dos dois lados junto (coluna +
+  campo Dart).
 
-## Próximos passos (nessa ordem)
+## Próximos passos
 
-1. **Leo cria um projeto Supabase NOVO** (Dashboard → New Project) —
-   separado do projeto de produção da Shallom.
-2. Rodar `supabase/sql/00_tenants.sql` nesse projeto novo, inserir uma
-   linha de tenant de teste (tem um exemplo de `insert` comentado no
-   fim do próprio arquivo).
-3. Preencher `lib/core/env.dart` (ou passar via `--dart-define`) com a
-   URL/anon key desse projeto novo + o `TENANT_SLUG` batendo com o
-   tenant de teste inserido.
-4. `flutter run -d chrome` — confirmar que o app sobe, carrega o
-   tenant (cores/logo/abas) e navega sem crash.
-5. **Só depois disso**: desenhar `tenant_id` + RLS multi-tenant nas
-   outras tabelas (precisa de projeto real pra testar contra — não dá
-   pra fazer isso corretamente sem rodar de verdade), e junto com isso
-   escrever a versão generalizada do `esta_na_escala_primeira_vez()`
-   (ver seção acima).
-6. Curar a pasta `supabase/sql/` de referência bruta pra um schema
-   limpo, conforme o multi-tenant for saindo do papel.
-7. Painel de controle (identidade e-kko) — só depois do motor
-   multi-tenant estar de pé e testável.
+1. **Painel de controle (identidade e-kko)** — próximo bloco de
+   trabalho real. HTML/JS simples (sem build), cadastro manual de
+   tenant (Fase 0, sem wizard).
+2. Quando fizer sentido: desenhar `solicitar_papel_lider` do zero,
+   portar notificações push, e dar uma UI pro admin configurar
+   `tenants.ministerio_primeira_vez` (hoje só via SQL direto).
 
 ## Convenções de código (herdadas do `awake_app`, mantidas aqui)
 

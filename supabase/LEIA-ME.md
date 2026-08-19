@@ -1,31 +1,30 @@
-# SQL: schema curado vs. referência bruta
+# Schema do e-kko. church
 
-## `sql/schema/` — rode isto num projeto Supabase NOVO
+Todo o SQL do motor multi-tenant está em `sql/schema/`, numerado na ordem
+de execução (`00_tenants.sql`, `01_profiles.sql`, ..., `10_storage_buckets.sql`).
+Cole e rode **na ordem**, no SQL Editor de um projeto Supabase novo e
+vazio — ou use `sql/schema/completo.sql`, que já é os 11 arquivos juntos
+numa tacada só (regenere ele manualmente se editar algum arquivo
+individual, concatenando na mesma ordem).
 
-Schema limpo e curado do motor multi-tenant, com `tenant_id` + RLS em
-toda tabela. Arquivos numerados (`01_profiles.sql`, `02_...`, ...) —
-cole e rode **na ordem**, no SQL Editor do projeto novo. `00_tenants.sql`
-(na raiz de `sql/`, fora da pasta `schema/`) precisa rodar antes de tudo,
-é o único arquivo curado que já existia antes desse schema.
+Esses arquivos numerados são a **fonte de verdade** deste projeto — já
+validados de ponta a ponta (schema aplicado, app rodando, cadastro
+completo testado).
 
-## `sql/` (raiz, os outros ~50 arquivos) — referência bruta, não rodar direto
+## Onde ficou a referência bruta da Shallom
 
-O resto dos arquivos em `sql/` é uma cópia **bruta, sem filtro**, das
-migrations já rodadas no Supabase de produção da Shallom (`awake_app`).
-Servem só como referência histórica de como cada tabela/policy foi
-desenhada lá — nunca aponte o `ekko_app` pro Supabase da Shallom.
+Este projeto nasceu de uma cópia adaptada do `awake_app` (app real da
+Comunidade Batista Shallom). Durante a fase de desenho do schema
+multi-tenant, uma cópia bruta e não filtrada do histórico de migrations
+de produção da Shallom ficou guardada aqui só como referência de
+consulta — ela já foi usada pra montar o `sql/schema/` e **foi removida
+deste repo** por ser redundante (o `awake_app` continua existindo como
+repositório separado em
+`C:\Users\leona\Downloads\awake_app\awake_app`, se precisar consultar
+algo específico de lá — ex: corpo de RPCs ainda não portadas, como
+`solicitar_papel_lider`).
 
-Importante:
-- Tem arquivo aqui que é específico do sistema antigo "Escala Awake"
-  (`areas_servico`/`escalas`/`inscricoes`), check-in por QR Code, e Metas
-  mensais — tudo isso **saiu** do motor genérico (ver
-  `C:\Users\leona\.claude\plans\vivid-snacking-mist.md`) e **não** foi
-  portado pro `sql/schema/`. Não rode esses arquivos.
-- Vários arquivos são correções incrementais em cima de outros (nomes
-  tipo `RECUPERACAO_parteX`, `2026_*`) — não são um schema limpo e
-  ordenado, é o histórico real de como o banco da Shallom foi evoluindo.
-- O `sql/schema/` já fez essa curadoria (juntando `CREATE TABLE` +
-  `ALTER TABLE` + `CREATE POLICY` mais recentes de cada tabela, tirando
-  o que é específico da Shallom/QA) — normalmente não há mais motivo pra
-  ler os arquivos brutos, exceto pra investigar uma decisão antiga de
-  RLS/schema que o `sql/schema/` não cobre.
+Lembrete: o sistema antigo "Escala Awake" (`areas_servico`/`escalas`/
+`inscricoes`), check-in por QR Code, e Metas mensais **não** fazem parte
+do motor genérico — não portar isso pro `sql/schema/` se for consultar o
+`awake_app`.
