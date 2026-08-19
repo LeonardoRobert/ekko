@@ -1,5 +1,5 @@
 -- Schema completo do motor multi-tenant do e-kko. church
--- Gerado juntando 00_tenants.sql ... 10_storage_buckets.sql, nessa ordem.
+-- Gerado juntando 00_tenants.sql ... 11_admin_ekko.sql, nessa ordem.
 -- Cole tudo de uma vez no SQL Editor de um projeto Supabase NOVO e vazio, e rode.
 --
 -- Os arquivos numerados continuam sendo a fonte de verdade pra editar depois --
@@ -925,4 +925,36 @@ create policy "avatars_bucket_update" on storage.objects for update using (
 );
 create policy "avatars_bucket_delete" on storage.objects for delete using (
   bucket_id = 'avatars' and auth.uid()::text = (storage.foldername(name))[1]
+);
+
+-- ============================================================
+-- 11_admin_ekko.sql
+-- ============================================================
+-- Schema curado do motor multi-tenant do e-kko. church -- parte 11.
+--
+-- Ate' aqui (00-10), `tenants` so tinha select liberado -- nenhuma
+-- policy de escrita de proposito (ver comentario em 00_tenants.sql).
+-- O painel de controle (docs/painel.html) precisa editar cores/logo/
+-- modulos_ativos/ministerio_primeira_vez de uma igreja, entao precisa
+-- de alguem que possa escrever ali cruzando a fronteira de tenant --
+-- diferente de is_admin(), que so' enxerga o proprio tenant da pessoa.
+--
+-- Fase 0 (poucos clientes, so' o Leo mexe nisso): lista fixa de e-mail
+-- no proprio SQL, sem tabela de admins da e-kko -- so vale criar uma
+-- tabela pra isso quando o volume justificar (mesmo racional do
+-- onboarding manual de tenant, ver CLAUDE.md).
+--
+-- Rode depois do 10_storage_buckets.sql.
+
+create or replace function public.is_admin_ekko() returns boolean
+language sql stable as $$
+  select coalesce(auth.jwt() ->> 'email', '') in (
+    'leonardorobertcampos@gmail.com'
+  );
+$$;
+
+create policy "tenants_update_admin_ekko" on public.tenants for update using (
+  public.is_admin_ekko()
+) with check (
+  public.is_admin_ekko()
 );

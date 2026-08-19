@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>e-kko. — Painel</title>
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@1,500;1,700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --preto: #0A0A0A;
+    --branco: #FFFFFF;
+    --limao: #E2FF0C;
+    --roxo: #6A03FF;
+    --cinza: #1E1E1E;
+    --cinza-claro: #8A8A8A;
+    --borda: #2C2C2C;
+    --sans: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --serif-italica: "IBM Plex Serif", Georgia, serif;
+    --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--preto);
+    color: var(--branco);
+    font-family: var(--sans);
+    min-height: 100vh;
+  }
+  .wordmark {
+    font-family: var(--serif-italica);
+    font-style: italic;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .tagline {
+    color: var(--cinza-claro);
+    font-size: 13px;
+    letter-spacing: 0.02em;
+  }
+  a { color: var(--limao); }
+
+  /* --- telas de estado (login / negado / carregando) --- */
+  .tela-centro {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .cartao {
+    background: var(--cinza);
+    border: 1px solid var(--borda);
+    border-radius: 12px;
+    padding: 32px;
+    width: 100%;
+    max-width: 380px;
+  }
+  .cartao h1 { font-size: 28px; margin: 0 0 4px; }
+  .cartao .tagline { margin-bottom: 28px; }
+  label { display: block; font-size: 13px; color: var(--cinza-claro); margin: 16px 0 6px; }
+  input[type="email"], input[type="password"], input[type="text"], input[type="url"] {
+    width: 100%;
+    background: var(--preto);
+    border: 1px solid var(--borda);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: var(--branco);
+    font-family: var(--sans);
+    font-size: 14px;
+  }
+  input[type="color"] {
+    width: 44px; height: 34px; padding: 2px;
+    background: var(--preto); border: 1px solid var(--borda); border-radius: 6px;
+  }
+  input:focus { outline: 2px solid var(--roxo); outline-offset: 1px; }
+  .botao-primario {
+    width: 100%;
+    background: var(--limao);
+    color: var(--preto);
+    border: none;
+    border-radius: 8px;
+    padding: 12px;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    margin-top: 24px;
+  }
+  .botao-primario:hover { opacity: 0.9; }
+  .botao-primario:disabled { opacity: 0.5; cursor: default; }
+  .botao-secundario {
+    background: transparent;
+    color: var(--branco);
+    border: 1px solid var(--borda);
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .botao-secundario:hover { border-color: var(--branco); }
+  .erro { color: #FF6161; font-size: 13px; margin-top: 12px; min-height: 16px; }
+
+  /* --- app --- */
+  #app { display: none; }
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 32px;
+    border-bottom: 1px solid var(--borda);
+  }
+  header .wordmark { font-size: 22px; }
+  main { padding: 32px; max-width: 1000px; margin: 0 auto; }
+  main h2 { font-size: 20px; margin-bottom: 4px; }
+  main .tagline { margin-bottom: 24px; }
+
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 12px 10px; border-bottom: 1px solid var(--borda); font-size: 14px; }
+  th { color: var(--cinza-claro); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .slug { font-family: var(--mono); color: var(--cinza-claro); font-size: 13px; }
+  .swatches { display: flex; gap: 6px; }
+  .swatch { width: 18px; height: 18px; border-radius: 4px; border: 1px solid var(--borda); }
+  .badge {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    background: var(--preto);
+    border: 1px solid var(--borda);
+    color: var(--cinza-claro);
+    margin-right: 4px;
+  }
+  .status-ativo { color: var(--limao); }
+  .status-inativo { color: var(--cinza-claro); }
+  .link-editar { background: none; border: none; color: var(--roxo); cursor: pointer; font-size: 14px; padding: 0; }
+  .link-editar:hover { text-decoration: underline; }
+
+  /* --- modal de edicao --- */
+  .fundo-modal {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    align-items: center; justify-content: center;
+    padding: 24px;
+    z-index: 10;
+  }
+  .caixa-modal {
+    background: var(--cinza);
+    border: 1px solid var(--borda);
+    border-radius: 12px;
+    padding: 28px;
+    width: 100%;
+    max-width: 440px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .caixa-modal h3 { margin: 0 0 20px; font-size: 18px; }
+  .linha-cores { display: flex; gap: 20px; }
+  .linha-cores > div { flex: 1; }
+  .linha-cores .rotulo-cor { display: flex; align-items: center; gap: 8px; }
+  .modulos { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+  .modulos label { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--branco); margin: 0; }
+  .rodape-modal { display: flex; gap: 10px; margin-top: 24px; }
+  .rodape-modal .botao-primario { margin-top: 0; }
+  .toggle-ativo { display: flex; align-items: center; gap: 8px; margin-top: 16px; }
+  .toggle-ativo label { margin: 0; color: var(--branco); font-size: 14px; }
+</style>
+</head>
+<body>
+
+  <div class="tela-centro" id="tela-login">
+    <div class="cartao">
+      <h1 class="wordmark">e-kko.</h1>
+      <div class="tagline">para servir quem serve — painel de controle</div>
+      <form id="form-login">
+        <label for="campo-email">E-mail</label>
+        <input type="email" id="campo-email" required autocomplete="username">
+        <label for="campo-senha">Senha</label>
+        <input type="password" id="campo-senha" required autocomplete="current-password">
+        <button type="submit" class="botao-primario" id="botao-entrar">Entrar</button>
+        <div class="erro" id="erro-login"></div>
+      </form>
+    </div>
+  </div>
+
+  <div class="tela-centro" id="tela-negada" style="display:none;">
+    <div class="cartao" style="text-align:center;">
+      <h1 class="wordmark">e-kko.</h1>
+      <p style="color: var(--cinza-claro);">Essa conta não tem acesso ao painel.</p>
+      <button class="botao-secundario" id="botao-sair-negado">Sair</button>
+    </div>
+  </div>
+
+  <div id="app">
+    <header>
+      <span class="wordmark">e-kko.</span>
+      <button class="botao-secundario" id="botao-sair">Sair</button>
+    </header>
+    <main>
+      <h2>Igrejas</h2>
+      <div class="tagline" id="contador-tenants"></div>
+      <table>
+        <thead>
+          <tr>
+            <th>Igreja</th>
+            <th>Slug</th>
+            <th>Cores</th>
+            <th>Módulos</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="linhas-tenants"></tbody>
+      </table>
+    </main>
+  </div>
+
+  <div class="fundo-modal" id="fundo-modal">
+    <div class="caixa-modal">
+      <h3>Editar igreja</h3>
+      <form id="form-editar">
+        <input type="hidden" id="editar-id">
+
+        <label for="editar-nome">Nome</label>
+        <input type="text" id="editar-nome" required>
+
+        <div class="linha-cores">
+          <div>
+            <label for="editar-cor-primaria">Cor primária</label>
+            <div class="rotulo-cor">
+              <input type="color" id="editar-cor-primaria">
+              <input type="text" id="editar-cor-primaria-hex" placeholder="#0C192E">
+            </div>
+          </div>
+          <div>
+            <label for="editar-cor-destaque">Cor de destaque</label>
+            <div class="rotulo-cor">
+              <input type="color" id="editar-cor-destaque">
+              <input type="text" id="editar-cor-destaque-hex" placeholder="#FFD21F">
+            </div>
+          </div>
+        </div>
+
+        <label for="editar-logo">URL do logo</label>
+        <input type="url" id="editar-logo" placeholder="https://...">
+
+        <label>Módulos ativos</label>
+        <div class="modulos">
+          <label><input type="checkbox" value="calendario" class="editar-modulo"> Calendário</label>
+          <label><input type="checkbox" value="conteudos" class="editar-modulo"> Conteúdos</label>
+          <label><input type="checkbox" value="financeiro" class="editar-modulo"> Contribua (Financeiro)</label>
+        </div>
+
+        <label for="editar-ministerio-pv">Ministério que registra Primeira Vez</label>
+        <input type="text" id="editar-ministerio-pv" placeholder="ex: recepcao (em branco = só admin registra)">
+
+        <div class="toggle-ativo">
+          <input type="checkbox" id="editar-ativo">
+          <label for="editar-ativo">Igreja ativa</label>
+        </div>
+
+        <div class="erro" id="erro-editar"></div>
+
+        <div class="rodape-modal">
+          <button type="button" class="botao-secundario" id="botao-cancelar-editar" style="flex:1;">Cancelar</button>
+          <button type="submit" class="botao-primario" style="flex:1;" id="botao-salvar-editar">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+<script>
+  // Mesma URL/anon key do app (ver lib/core/env.dart) -- e' chave
+  // publica, protegida por RLS, sem problema em ficar no HTML.
+  const SUPABASE_URL = "https://yeimskdsftqkbvpafaxe.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InllaW1za2RzZnRxa2J2cGFmYXhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxNTc0OTAsImV4cCI6MjEwMjczMzQ5MH0.BN2-bWwR6AXswVZkln9Sa0vKmm1FVftwPiECCN79krc";
+  const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const CATALOGO_MODULOS = {
+    calendario: 'Calendário',
+    conteudos: 'Conteúdos',
+    financeiro: 'Contribua',
+  };
+
+  const telaLogin = document.getElementById('tela-login');
+  const telaNegada = document.getElementById('tela-negada');
+  const appEl = document.getElementById('app');
+  const fundoModal = document.getElementById('fundo-modal');
+
+  function mostrarSomente(el) {
+    [telaLogin, telaNegada, appEl].forEach(e => e.style.display = 'none');
+    el.style.display = el === appEl ? 'block' : 'flex';
+  }
+
+  // --- sessao / login -----------------------------------------------
+
+  async function verificarSessao() {
+    const { data: { session } } = await supa.auth.getSession();
+    if (!session) { mostrarSomente(telaLogin); return; }
+    await entrarNoPainel();
+  }
+
+  async function entrarNoPainel() {
+    const { data: souAdmin, error } = await supa.rpc('is_admin_ekko');
+    if (error || !souAdmin) {
+      mostrarSomente(telaNegada);
+      return;
+    }
+    mostrarSomente(appEl);
+    await carregarTenants();
+  }
+
+  document.getElementById('form-login').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const erroEl = document.getElementById('erro-login');
+    const botao = document.getElementById('botao-entrar');
+    erroEl.textContent = '';
+    botao.disabled = true;
+    botao.textContent = 'Entrando...';
+
+    const email = document.getElementById('campo-email').value.trim();
+    const senha = document.getElementById('campo-senha').value;
+
+    const { error } = await supa.auth.signInWithPassword({ email, password: senha });
+    botao.disabled = false;
+    botao.textContent = 'Entrar';
+
+    if (error) {
+      erroEl.textContent = 'E-mail ou senha incorretos.';
+      return;
+    }
+    await entrarNoPainel();
+  });
+
+  document.getElementById('botao-sair').addEventListener('click', async () => {
+    await supa.auth.signOut();
+    mostrarSomente(telaLogin);
+  });
+  document.getElementById('botao-sair-negado').addEventListener('click', async () => {
+    await supa.auth.signOut();
+    mostrarSomente(telaLogin);
+  });
+
+  // --- lista de tenants -----------------------------------------------
+
+  let tenantsCache = [];
+
+  async function carregarTenants() {
+    const { data, error } = await supa
+      .from('tenants')
+      .select('id, slug, nome, cor_primaria, cor_destaque, logo_url, modulos_ativos, ativo, ministerio_primeira_vez')
+      .order('nome');
+
+    if (error) {
+      document.getElementById('linhas-tenants').innerHTML =
+        `<tr><td colspan="6">Não foi possível carregar as igrejas.</td></tr>`;
+      return;
+    }
+
+    tenantsCache = data || [];
+    document.getElementById('contador-tenants').textContent =
+      `${tenantsCache.length} igreja${tenantsCache.length === 1 ? '' : 's'} cadastrada${tenantsCache.length === 1 ? '' : 's'}`;
+    renderizarTenants();
+  }
+
+  function renderizarTenants() {
+    const corpo = document.getElementById('linhas-tenants');
+    corpo.innerHTML = tenantsCache.map(t => `
+      <tr>
+        <td>${escaparHtml(t.nome)}</td>
+        <td class="slug">${escaparHtml(t.slug)}</td>
+        <td>
+          <div class="swatches">
+            <span class="swatch" style="background:${t.cor_primaria}" title="${t.cor_primaria}"></span>
+            <span class="swatch" style="background:${t.cor_destaque}" title="${t.cor_destaque}"></span>
+          </div>
+        </td>
+        <td>${(t.modulos_ativos || []).map(m => `<span class="badge">${CATALOGO_MODULOS[m] || m}</span>`).join('') || '<span class="tagline">nenhum</span>'}</td>
+        <td class="${t.ativo ? 'status-ativo' : 'status-inativo'}">${t.ativo ? 'Ativa' : 'Inativa'}</td>
+        <td><button class="link-editar" data-id="${t.id}">Editar</button></td>
+      </tr>
+    `).join('');
+
+    corpo.querySelectorAll('.link-editar').forEach(btn => {
+      btn.addEventListener('click', () => abrirModalEdicao(btn.dataset.id));
+    });
+  }
+
+  function escaparHtml(texto) {
+    const div = document.createElement('div');
+    div.textContent = texto ?? '';
+    return div.innerHTML;
+  }
+
+  // --- edicao -----------------------------------------------------------
+
+  function abrirModalEdicao(id) {
+    const t = tenantsCache.find(x => x.id === id);
+    if (!t) return;
+
+    document.getElementById('editar-id').value = t.id;
+    document.getElementById('editar-nome').value = t.nome;
+    document.getElementById('editar-cor-primaria').value = t.cor_primaria;
+    document.getElementById('editar-cor-primaria-hex').value = t.cor_primaria;
+    document.getElementById('editar-cor-destaque').value = t.cor_destaque;
+    document.getElementById('editar-cor-destaque-hex').value = t.cor_destaque;
+    document.getElementById('editar-logo').value = t.logo_url || '';
+    document.getElementById('editar-ministerio-pv').value = t.ministerio_primeira_vez || '';
+    document.getElementById('editar-ativo').checked = !!t.ativo;
+    document.querySelectorAll('.editar-modulo').forEach(chk => {
+      chk.checked = (t.modulos_ativos || []).includes(chk.value);
+    });
+    document.getElementById('erro-editar').textContent = '';
+
+    fundoModal.style.display = 'flex';
+  }
+
+  function fecharModalEdicao() {
+    fundoModal.style.display = 'none';
+  }
+
+  document.getElementById('botao-cancelar-editar').addEventListener('click', fecharModalEdicao);
+  fundoModal.addEventListener('click', (ev) => { if (ev.target === fundoModal) fecharModalEdicao(); });
+
+  // Mantem os pares cor/hex sincronizados nos dois sentidos.
+  function sincronizarCor(idCor, idHex) {
+    document.getElementById(idCor).addEventListener('input', (ev) => {
+      document.getElementById(idHex).value = ev.target.value;
+    });
+    document.getElementById(idHex).addEventListener('input', (ev) => {
+      if (/^#[0-9a-fA-F]{6}$/.test(ev.target.value)) {
+        document.getElementById(idCor).value = ev.target.value;
+      }
+    });
+  }
+  sincronizarCor('editar-cor-primaria', 'editar-cor-primaria-hex');
+  sincronizarCor('editar-cor-destaque', 'editar-cor-destaque-hex');
+
+  document.getElementById('form-editar').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const erroEl = document.getElementById('erro-editar');
+    const botao = document.getElementById('botao-salvar-editar');
+    erroEl.textContent = '';
+
+    const corPrimaria = document.getElementById('editar-cor-primaria-hex').value.trim();
+    const corDestaque = document.getElementById('editar-cor-destaque-hex').value.trim();
+    if (!/^#[0-9a-fA-F]{6}$/.test(corPrimaria) || !/^#[0-9a-fA-F]{6}$/.test(corDestaque)) {
+      erroEl.textContent = 'Cor inválida -- use o formato #RRGGBB.';
+      return;
+    }
+
+    const modulosAtivos = Array.from(document.querySelectorAll('.editar-modulo'))
+      .filter(chk => chk.checked)
+      .map(chk => chk.value);
+
+    botao.disabled = true;
+    botao.textContent = 'Salvando...';
+
+    const { error } = await supa.from('tenants').update({
+      nome: document.getElementById('editar-nome').value.trim(),
+      cor_primaria: corPrimaria,
+      cor_destaque: corDestaque,
+      logo_url: document.getElementById('editar-logo').value.trim() || null,
+      modulos_ativos: modulosAtivos,
+      ministerio_primeira_vez: document.getElementById('editar-ministerio-pv').value.trim() || null,
+      ativo: document.getElementById('editar-ativo').checked,
+    }).eq('id', document.getElementById('editar-id').value);
+
+    botao.disabled = false;
+    botao.textContent = 'Salvar';
+
+    if (error) {
+      erroEl.textContent = 'Não foi possível salvar. Tenta de novo em instantes.';
+      return;
+    }
+
+    fecharModalEdicao();
+    await carregarTenants();
+  });
+
+  verificarSessao();
+</script>
+</body>
+</html>
