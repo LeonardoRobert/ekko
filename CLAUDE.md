@@ -72,6 +72,16 @@ não modifiquei nada abaixo, é puramente informativo.
   ainda se quer um número de presença pro painel. Ideia genuinamente
   reaproveitável pra qualquer igreja cliente, não é específico da
   Shallom.
+- **"Não contabilizado" em vez de apagar ocorrência** (atualização de
+  24/08): no painel da Shallom, o botão que antes apagava uma
+  ocorrência de evento (`excluir_ocorrencia_evento`) virou um toggle
+  "Não contabilizado" — o evento continua na lista (visualmente meio
+  apagado, com um badge cinza), mas sai do total/média do dashboard.
+  Mesma coluna `nao_contabilizado` (boolean) na tabela de contagem
+  serve pra isso, e uma função nova (`definir_nao_contabilizado_evento`)
+  cuida do toggle, checando `is_admin()`. Vale mais a pena que apagar
+  de verdade porque preserva histórico (ex: evento cancelado de última
+  hora, mas que ainda aconteceu parcialmente) sem sumir com o registro.
 - **Retry automático em erro `PGRST303` ("JWT issued at future")** —
   `awake_app/lib/core/cliente_http_retentativa_sessao.dart`: um
   `http.Client` customizado passado no `Supabase.initialize(httpClient:
