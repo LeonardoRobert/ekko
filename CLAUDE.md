@@ -72,16 +72,25 @@ não modifiquei nada abaixo, é puramente informativo.
   ainda se quer um número de presença pro painel. Ideia genuinamente
   reaproveitável pra qualquer igreja cliente, não é específico da
   Shallom.
-- **"Não contabilizado" em vez de apagar ocorrência** (atualização de
-  24/08): no painel da Shallom, o botão que antes apagava uma
-  ocorrência de evento (`excluir_ocorrencia_evento`) virou um toggle
-  "Não contabilizado" — o evento continua na lista (visualmente meio
-  apagado, com um badge cinza), mas sai do total/média do dashboard.
-  Mesma coluna `nao_contabilizado` (boolean) na tabela de contagem
-  serve pra isso, e uma função nova (`definir_nao_contabilizado_evento`)
-  cuida do toggle, checando `is_admin()`. Vale mais a pena que apagar
-  de verdade porque preserva histórico (ex: evento cancelado de última
-  hora, mas que ainda aconteceu parcialmente) sem sumir com o registro.
+- **"Não contabilizado" em vez de apagar ocorrência, POR ABA** (versão
+  final, corrigida em 24/08 — a primeira tentativa tinha um bug real):
+  no painel da Shallom/Awake, o botão que antes apagava uma ocorrência
+  de evento (`excluir_ocorrencia_evento`) virou um toggle "Não
+  contabilizado" — o evento continua na lista (visualmente meio
+  apagado, badge cinza), mas sai do total/média do dashboard. Vale mais
+  a pena que apagar de verdade porque preserva histórico (ex: evento
+  que aconteceu parcialmente, ou foi cancelado de última hora).
+  **Detalhe importante se for portar**: um mesmo evento pode aparecer
+  em MAIS DE UMA aba/visão ao mesmo tempo (ex: EBD aparece tanto na
+  aba Awake quanto na Shallom) — a primeira versão guardava esse
+  toggle direto em `contagem_manual_eventos` por (evento, data) só, e
+  marcar numa aba vazava pra outra sem querer. A correção foi mover
+  pra uma tabela própria `ocorrencias_nao_contabilizadas` com
+  `(evento_id, data_ocorrencia, aba)` como chave única — a função
+  `definir_nao_contabilizado_evento` ganhou um parâmetro `p_aba`. Se
+  este projeto algum dia tiver múltiplas "visões" sobre o mesmo dado
+  de evento, vale já nascer com esse terceiro campo de escopo na
+  chave, não descobrir o bug depois como a Shallom descobriu.
 - **Retry automático em erro `PGRST303` ("JWT issued at future")** —
   `awake_app/lib/core/cliente_http_retentativa_sessao.dart`: um
   `http.Client` customizado passado no `Supabase.initialize(httpClient:
