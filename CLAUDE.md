@@ -53,6 +53,86 @@ repositório git **completamente separado**, numa pasta separada.
   — esse caminho é do usuário (fora deste repo), deve continuar
   acessível de qualquer projeto nesta máquina.
 
+### Novidades do `awake_app` desde 19/08 (sincronizado em 24/08)
+
+A sessão do `awake_app` continuou recebendo pedidos reais da igreja
+depois do scaffold deste projeto ter sido cortado dele. Nada disso foi
+portado pra cá automaticamente — é só um resumo do que mudou lá, pra
+avaliar caso a caso se vale trazer pro motor genérico depois. Também
+não modifiquei nada abaixo, é puramente informativo.
+
+**Padrões genéricos que podem valer a pena portar pro motor:**
+
+- **Contagem manual de presença** (`contagem_manual_eventos` +
+  `ajustar_contagem_evento`/`definir_contagem_evento`, e uma tela
+  "Contador de evento" no app: escolhe o evento de hoje, mexe num
+  número local com +/-, manda tudo de uma vez só num botão "Enviar").
+  Resolve o caso de eventos grandes/gerais (tipo um culto de
+  celebração) onde não dá pra escanear QR Code de todo mundo, mas
+  ainda se quer um número de presença pro painel. Ideia genuinamente
+  reaproveitável pra qualquer igreja cliente, não é específico da
+  Shallom.
+- **Retry automático em erro `PGRST303` ("JWT issued at future")** —
+  `awake_app/lib/core/cliente_http_retentativa_sessao.dart`: um
+  `http.Client` customizado passado no `Supabase.initialize(httpClient:
+  ...)` que detecta esse erro (relógio da infra do Supabase
+  dessincronizado, comum logo após o projeto acordar de hibernação),
+  renova a sessão e repete a requisição sozinho. Corta a necessidade da
+  pessoa fechar/abrir o app manualmente. Vale portar pro `main.dart`
+  deste projeto quando o app estiver rodando de verdade contra o
+  Supabase da e-kko.
+- **Editar/Apagar em listas administrativas do painel** — padrão
+  consolidado no `gestao.html` da Shallom (modal compartilhado
+  `#fundo-modal`/`#caixa-modal`, botões `.link-acao`/`.link-acao-perigo`
+  inline em cada linha) pra Visitantes e pros eventos das novas abas
+  Awake/Shallom. Referência de UI pronta pro `docs/painel.html` daqui
+  quando ele precisar de telas de lista com edição inline.
+
+**Armadilhas genéricas aprendidas (aplicam a qualquer projeto
+Supabase/PostgREST, não só à Shallom):**
+
+- **Embed ambíguo do PostgREST**: se uma tabela tem MAIS DE UMA foreign
+  key pra `profiles` (ex: `user_id` e `feito_por`, ou `registrado_por` e
+  `acompanhado_por`), um `select('*, profiles(nome)')` sem qualificar
+  passa a ser rejeitado assim que a segunda FK é criada — precisa
+  `profiles!nome_da_fk(nome)`. Isso já quebrou 2 telas na Shallom
+  silenciosamente (o erro era escondido por um fallback de "lista
+  vazia"). Neste projeto, `profile_id`/`criado_por`/`atualizado_por`
+  já aparecem em várias tabelas do schema — vale conferir se algum
+  `select` com embed pra `profiles` vai ter esse problema conforme mais
+  FKs forem adicionadas.
+- **SQL Editor do Supabase tem um "assistente" que às vezes cola um
+  bloco `ALTER TABLE ... ENABLE ROW LEVEL SECURITY` sozinho** dentro de
+  uma função `plpgsql`, confundindo variável declarada (`v_algumacoisa`)
+  com tabela nova — quebra o fechamento do delimitador `$$`. Usar
+  `$func$` (ou qualquer delimitador que não seja `$$`) evita o problema
+  por completo. Vale adotar como padrão em todo SQL novo deste projeto.
+- **Múltiplas definições da mesma função/policy em arquivos SQL soltos
+  causam regressão silenciosa** — se o arquivo antigo for colado de
+  novo por engano, `create or replace` apaga a correção mais nova sem
+  aviso nenhum. Esse projeto já tem a defesa estrutural certa pra isso
+  (schema numerado em `supabase/sql/schema/`, fonte única de verdade,
+  ver `supabase/LEIA-ME.md`) — a experiência da Shallom só confirma que
+  vale manter essa disciplina á risca conforme o schema for evoluindo
+  (nunca ter um `2026_algo.sql` solto redefinindo algo que já está no
+  schema numerado).
+- **Cuidado com "hoje"/"ontem" calculado no fuso errado.** Um teste
+  automatizado da Shallom (CI roda em UTC) calculava "ontem" no fuso do
+  servidor, enquanto a função do banco calculava "hoje" em
+  `America/Sao_Paulo` — dava falso positivo numa janela de ~3h por dia.
+  Aqui isso é mais sério ainda: sendo multi-tenant de verdade, futuras
+  igrejas clientes podem estar em fusos diferentes — vale já nascer
+  pensando em "hoje" como algo configurável por tenant (ou pelo menos
+  documentado/explícito), não hardcoded num fuso só.
+
+**Específico da Shallom/Awake, não portar:** líder poder escalar
+manualmente um membro que não se inscreveu sozinho (sistema Escala
+Awake, que já não existe aqui), aba "Awake" do gestão com check-in
+individual por QR Code (idem), reformatação do texto de WhatsApp da
+Escala de Serviço (`*Escala Semanal da X*` com marcadores em negrito —
+cosmético, específico da voz da Shallom, mas fácil de copiar se algum
+tenant pedir algo parecido).
+
 ## Arquitetura — decisões já fechadas (não re-discutir do zero)
 
 - **Um único código-fonte multi-tenant**, NÃO Flutter flavors. Cada
